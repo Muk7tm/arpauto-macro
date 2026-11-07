@@ -1,0 +1,93 @@
+import { Theme } from "theme.slint";
+import { AppState, HistoryRow } from "state.slint";
+import { Button, NumberField, Segmented, SettingRow, SettingsButton, Slider, Toggle } from "widgets.slint";
+import { SettingsPage } from "settings.slint";
+
+import "../assets/fonts/NotoSans-Regular.ttf";
+import "../assets/fonts/NotoSans-Medium.ttf";
+
+export { AppState, HistoryRow }
+
+component MainPage inherits Rectangle {
+    VerticalLayout {
+        padding: Theme.padding;
+        spacing: Theme.spacing;
+
+        SettingRow {
+            label: "Mouse button";
+            Segmented {
+                options: ["Left", "Middle", "Right"];
+                current: AppState.button-index;
+                selected(i) => { AppState.set-int("button", i); }
+            }
+        }
+        SettingRow {
+            label: "Hold";
+            Slider {
+                horizontal-stretch: 3;
+                minimum: 1;
+                maximum: 500;
+                value: AppState.hold-ms;
+                changed(v) => { AppState.set-int("hold", v); }
+            }
+            NumberField { value: AppState.hold-ms; minimum: 1; maximum: 10000; edited(v) => { AppState.set-int("hold", v); } }
+        }
+        SettingRow {
+            label: "Release";
+            Slider {
+                horizontal-stretch: 3;
+                minimum: 1;
+                maximum: 500;
+                value: AppState.release-ms;
+                changed(v) => { AppState.set-int("release", v); }
+            }
+            NumberField { value: AppState.release-ms; minimum: 1; maximum: 10000; edited(v) => { AppState.set-int("release", v); } }
+        }
+        SettingRow {
+            label: "Repeat";
+            Toggle { checked: AppState.repeat-enabled; toggled(v) => { AppState.set-bool("repeat", v); } }
+        }
+
+        Rectangle { vertical-stretch: 1; }
+
+        if AppState.status-text != "": Text {
+            text: AppState.status-text;
+            color: AppState.status-error ? Theme.text-strong : Theme.text-muted;
+            font-size: Theme.font-caption;
+            wrap: word-wrap;
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            Button {
+                text: AppState.run-label;
+                primary: true;
+                tall: true;
+                horizontal-stretch: 1;
+                clicked => { AppState.toggle-run(); }
+            }
+            SettingsButton { clicked => { AppState.navigate(1); } }
+        }
+    }
+}
+
+export component MainWindow inherits Window {
+    title: "ARPAuto Macro";
+    icon: @image-url("../assets/icon.png");
+    background: Theme.background;
+    default-font-family: Theme.font-family;
+    default-font-size: Theme.font-body;
+    preferred-width: 380px;
+    preferred-height: 260px;
+    min-width: 340px;
+    min-height: 240px;
+
+    if AppState.page == 0: MainPage {
+        width: parent.width;
+        height: parent.height;
+    }
+    if AppState.page == 1: SettingsPage {
+        width: parent.width;
+        height: parent.height;
+    }
+}

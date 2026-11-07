@@ -1,0 +1,94 @@
+// Application state shared by all pages. Rust owns the real state and mirrors it here;
+// pages report user intent through the callbacks.
+
+export struct HistoryRow {
+    hold: string,
+    verdict: string,
+    ok: bool,
+}
+
+export global AppState {
+    // Navigation: 0 = main, 1 = settings
+    in-out property <int> page: 0;
+    in-out property <int> settings-tab: 0;
+
+    // Hold settings
+    in-out property <int> button-index: 0;
+    in-out property <int> hold-ms: 120;
+    in-out property <int> release-ms: 60;
+    in-out property <bool> repeat-enabled: true;
+    in-out property <int> repeat-count: 0;
+    in-out property <int> preset-index: 1;
+    in-out property <int> start-delay-ms: 0;
+    in-out property <int> activation-index: 0;
+
+    // Run state: 0 idle, 1 arming, 2 waiting for target, 3 running, 4 paused
+    in-out property <int> run-state: 0;
+    in-out property <string> run-label: "Start";
+    in-out property <string> status-text;
+    in-out property <bool> status-error;
+
+    // Hotkeys
+    in-out property <string> hotkey-start: "F7";
+    in-out property <string> hotkey-emergency: "F10";
+    in-out property <string> hotkey-status;
+    in-out property <bool> hotkey-ok: true;
+    // "" when idle, otherwise "start" or "emergency"
+    in-out property <string> capture-target;
+
+    // Input
+    in-out property <int> backend-index: 0;
+    in-out property <bool> focus-protection: true;
+    in-out property <int> focus-loss-index: 0;
+    in-out property <string> target-class;
+    in-out property <bool> detecting;
+    in-out property <string> input-message;
+
+    // Profiles
+    in-out property <[string]> profiles;
+    in-out property <int> profile-index: -1;
+    in-out property <string> profile-message;
+    in-out property <bool> profile-error;
+    in-out property <string> active-profile;
+    in-out property <string> profiles-dir;
+
+    // Calibration
+    // 0 setup, 1 ready to run a test, 2 testing, 3 waiting for the verdict, 4 done,
+    // 5 never recognized
+    in-out property <int> calib-phase: 0;
+    in-out property <int> calib-start-ms: 200;
+    in-out property <int> calib-holds: 5;
+    in-out property <int> calib-test-number: 1;
+    in-out property <int> calib-current-ms: 200;
+    in-out property <int> calib-suggested-ms: 0;
+    in-out property <string> calib-message;
+    in-out property <[HistoryRow]> calib-history;
+
+    in-out property <string> config-path;
+
+    callback navigate(int);
+    callback toggle-run();
+    callback set-bool(string, bool);
+    callback set-int(string, int);
+    callback set-text(string, string);
+    callback select-preset(int);
+    callback capture(string);
+    callback cancel-capture();
+    callback detect-target();
+    callback reset-defaults();
+
+    callback profile-save(string);
+    callback profile-load(int);
+    callback profile-rename(int, string);
+    callback profile-duplicate(int);
+    callback profile-delete(int);
+    callback profile-export(int, string);
+    callback profile-import(string);
+
+    callback calib-begin();
+    callback calib-run();
+    callback calib-stop();
+    callback calib-verdict(bool);
+    callback calib-apply();
+    callback calib-reset();
+}

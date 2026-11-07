@@ -1,0 +1,380 @@
+import { Theme } from "theme.slint";
+import { AppState } from "state.slint";
+import {
+    BackButton, Button, Caption, ConfirmButton, ListItem, NumberField, Panel, ScrollPanel,
+    SectionTitle, Segmented, SettingRow, TabBar, TextField, Toggle,
+} from "widgets.slint";
+
+component GeneralTab inherits VerticalLayout {
+    spacing: Theme.spacing;
+
+    SectionTitle { text: "TIMING"; }
+    SettingRow {
+        label: "Preset";
+        Segmented {
+            options: ["Fast", "Balanced", "Stable", "Custom"];
+            current: AppState.preset-index;
+            selected(i) => { AppState.select-preset(i); }
+        }
+    }
+    SettingRow {
+        label: "Hold duration";
+        NumberField { value: AppState.hold-ms; minimum: 1; maximum: 10000; edited(v) => { AppState.set-int("hold", v); } }
+    }
+    SettingRow {
+        label: "Release duration";
+        NumberField { value: AppState.release-ms; minimum: 1; maximum: 10000; edited(v) => { AppState.set-int("release", v); } }
+    }
+    Caption { text: "The button stays down for the hold duration, then up for the release duration. Presets are starting points; use Calibrate to find what your game recognizes."; }
+
+    SectionTitle { text: "RUN"; }
+    SettingRow {
+        label: "Mouse button";
+        Segmented {
+            options: ["Left", "Middle", "Right"];
+            current: AppState.button-index;
+            selected(i) => { AppState.set-int("button", i); }
+        }
+    }
+    SettingRow {
+        label: "Repeat";
+        Toggle { checked: AppState.repeat-enabled; toggled(v) => { AppState.set-bool("repeat", v); } }
+    }
+    SettingRow {
+        label: "Repetitions";
+        NumberField {
+            value: AppState.repeat-count;
+            maximum: 1000000;
+            suffix: "×";
+            enabled: AppState.repeat-enabled;
+            edited(v) => { AppState.set-int("repeat-count", v); }
+        }
+    }
+    Caption { text: "0 repeats until stopped. With Repeat off a single hold is performed."; }
+    SettingRow {
+        label: "Start delay";
+        NumberField { value: AppState.start-delay-ms; maximum: 30000; edited(v) => { AppState.set-int("start-delay", v); } }
+    }
+    SettingRow {
+        label: "Activation";
+        Segmented {
+            options: ["Toggle", "Hold to run"];
+            current: AppState.activation-index;
+            selected(i) => { AppState.set-int("activation", i); }
+        }
+    }
+
+    SectionTitle { text: "RESET"; }
+    HorizontalLayout {
+        ConfirmButton {
+            text: "Reset settings to defaults";
+            confirm-text: "Click again to reset";
+            confirmed => { AppState.reset-defaults(); }
+        }
+        Rectangle { }
+    }
+    Caption { text: "Saved profiles are kept. Settings file: " + AppState.config-path; }
+}
+
+component HotkeyRow inherits SettingRow {
+    in property <string> target;
+    in property <string> value;
+    TextField {
+        preferred-width: 130px;
+        horizontal-stretch: 0;
+        text: AppState.capture-target == root.target ? "Press a key…" : root.value;
+        highlight: AppState.capture-target == root.target;
+        enabled: AppState.capture-target == "";
+        accepted(t) => { AppState.set-text("hotkey-" + root.target, t); }
+    }
+    Button {
+        text: AppState.capture-target == root.target ? "Cancel" : "Capture";
+        enabled: AppState.capture-target == "" || AppState.capture-target == root.target;
+        clicked => {
+            if AppState.capture-target == root.target {
+                AppState.cancel-capture();
+            } else {
+                AppState.capture(root.target);
+            }
+        }
+    }
+}
+
+component HotkeysTab inherits VerticalLayout {
+    spacing: Theme.spacing;
+
+    SectionTitle { text: "GLOBAL HOTKEYS"; }
+    HotkeyRow { label: "Start / stop"; target: "start"; value: AppState.hotkey-start; }
+    HotkeyRow { label: "Emergency stop"; target: "emergency"; value: AppState.hotkey-emergency; }
+    Text {
+        text: AppState.hotkey-status;
+        color: AppState.hotkey-ok ? Theme.text-secondary : Theme.text-strong;
+        font-size: Theme.font-label;
+        wrap: word-wrap;
+    }
+    Caption {
+        text: "Click Capture and press the key or combination (Esc cancels), or type it, e.g. F7 or Ctrl+F7. Emergency stop always stops and releases the button.";
+    }
+}
+
+component InputTab inherits VerticalLayout {
+    spacing: Theme.spacing;
+
+    SectionTitle { text: "INPUT BACKEND"; }
+    SettingRow {
+        label: "Backend";
+        Segmented {
+            options: ["XTest", "uinput"];
+            current: AppState.backend-index;
+            selected(i) => { AppState.set-int("backend", i); }
+        }
+    }
+    Caption {
+        text: "XTest sends synthetic X11 events and needs no permissions. uinput creates a virtual mouse in the kernel; it needs write access to /dev/uinput (see README).";
+    }
+
+    SectionTitle { text: "FOCUS PROTECTION"; }
+    SettingRow {
+        label: "Focus protection";
+        Toggle { checked: AppState.focus-protection; toggled(v) => { AppState.set-bool("focus-protection", v); } }
+    }
+    SettingRow {
+        label: "When the target is lost";
+        Segmented {
+            options: ["Stop", "Pause"];
+            current: AppState.focus-loss-index;
+            enabled: AppState.focus-protection;
+            selected(i) => { AppState.set-int("focus-loss", i); }
+        }
+    }
+    SettingRow {
+        label: "Target window";
+        TextField {
+            preferred-width: 130px;
+            horizontal-stretch: 0;
+            text: AppState.target-class;
+            placeholder: "any window";
+            enabled: AppState.focus-protection;
+            accepted(t) => { AppState.set-text("target-class", t); }
+        }
+        Button {
+            text: AppState.detecting ? "Focus it…" : "Detect";
+            enabled: AppState.focus-protection && !AppState.detecting;
+            clicked => { AppState.detect-target(); }
+        }
+    }
+    Caption {
+        text: "Clicks only happen while the window that was focused at start is still focused and under the pointer. Optionally restrict it by WM_CLASS (e.g. sober): click Detect and focus the game within 3 seconds.";
+    }
+    if AppState.input-message != "": Text {
+        text: AppState.input-message;
+        color: Theme.text-secondary;
+        font-size: Theme.font-label;
+        wrap: word-wrap;
+    }
+}
+
+component ProfilesTab inherits VerticalLayout {
+    in-out property <string> name-input;
+    in-out property <string> path-input: "~/";
+    property <bool> has-selection: AppState.profile-index >= 0 && AppState.profile-index < AppState.profiles.length;
+    spacing: Theme.spacing;
+
+    SectionTitle { text: "PROFILES"; }
+    Panel {
+        height: 128px;
+        if AppState.profiles.length == 0: Text {
+            width: parent.width;
+            height: parent.height;
+            text: "No saved profiles yet";
+            color: Theme.text-muted;
+            font-size: Theme.font-label;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        ScrollPanel {
+            x: 4px;
+            y: 4px;
+            width: parent.width - 8px;
+            height: parent.height - 8px;
+            content-spacing: 1px;
+            for name[i] in AppState.profiles: ListItem {
+                text: name;
+                detail: name == AppState.active-profile ? "in use" : "";
+                selected: i == AppState.profile-index;
+                clicked => {
+                    AppState.profile-index = i;
+                    root.name-input = name;
+                }
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.spacing-small;
+        Button { text: "Load"; enabled: root.has-selection; clicked => { AppState.profile-load(AppState.profile-index); } }
+        Button { text: "Duplicate"; enabled: root.has-selection; clicked => { AppState.profile-duplicate(AppState.profile-index); } }
+        Rectangle { }
+        ConfirmButton {
+            text: "Delete";
+            confirm-text: "Delete?";
+            enabled: root.has-selection;
+            confirmed => { AppState.profile-delete(AppState.profile-index); }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.spacing-small;
+        TextField {
+            text: root.name-input;
+            placeholder: "Profile name";
+            edited(t) => { root.name-input = t; }
+            accepted(t) => { root.name-input = t; }
+        }
+        Button { text: "Save"; clicked => { AppState.profile-save(root.name-input); } }
+        Button {
+            text: "Rename";
+            enabled: root.has-selection;
+            clicked => { AppState.profile-rename(AppState.profile-index, root.name-input); }
+        }
+    }
+    Caption { text: "A profile stores the mouse button, hold and release timing, repeat settings and start delay. Save replaces a profile with the same name."; }
+
+    SectionTitle { text: "IMPORT / EXPORT"; }
+    HorizontalLayout {
+        spacing: Theme.spacing-small;
+        TextField {
+            text: root.path-input;
+            placeholder: "File or folder path";
+            edited(t) => { root.path-input = t; }
+            accepted(t) => { root.path-input = t; }
+        }
+        Button {
+            text: "Export";
+            enabled: root.has-selection;
+            clicked => { AppState.profile-export(AppState.profile-index, root.path-input); }
+        }
+        Button { text: "Import"; clicked => { AppState.profile-import(root.path-input); } }
+    }
+    if AppState.profile-message != "": Text {
+        text: AppState.profile-message;
+        color: AppState.profile-error ? Theme.text-strong : Theme.text-secondary;
+        font-size: Theme.font-label;
+        wrap: word-wrap;
+    }
+    Caption { text: "Export writes the selected profile to a .toml file (a folder path uses the profile name). Profiles are stored in " + AppState.profiles-dir; }
+}
+
+component CalibrateTab inherits VerticalLayout {
+    property <int> phase: AppState.calib-phase;
+    spacing: Theme.spacing;
+
+    SectionTitle { text: "HOLD CALIBRATION"; }
+    Caption {
+        text: "Finds the shortest hold your game reliably recognizes. ARPAuto cannot see what happens inside the game, so you judge each test yourself.";
+    }
+
+    if root.phase == 0: VerticalLayout {
+        spacing: Theme.spacing;
+        SettingRow {
+            label: "First test hold";
+            NumberField { value: AppState.calib-start-ms; minimum: 1; maximum: 5000; edited(v) => { AppState.set-int("calib-start", v); } }
+        }
+        SettingRow {
+            label: "Holds per test";
+            NumberField { value: AppState.calib-holds; minimum: 1; maximum: 50; suffix: "×"; edited(v) => { AppState.set-int("calib-holds", v); } }
+        }
+        SettingRow {
+            label: "Release between holds";
+            NumberField { value: AppState.release-ms; minimum: 1; maximum: 10000; edited(v) => { AppState.set-int("release", v); } }
+        }
+        HorizontalLayout {
+            Button { text: "Start calibration"; primary: true; clicked => { AppState.calib-begin(); } }
+            Rectangle { }
+        }
+    }
+
+    if root.phase > 0: Panel {
+        VerticalLayout {
+            padding: 12px;
+            spacing: 8px;
+            Text {
+                text: root.phase == 4 ? "Suggested hold: " + AppState.calib-suggested-ms + " ms"
+                    : root.phase == 5 ? "Not recognized"
+                    : "Test " + AppState.calib-test-number + ": hold " + AppState.calib-current-ms + " ms";
+                color: Theme.text-strong;
+                font-size: Theme.font-body;
+                font-weight: Theme.weight-medium;
+            }
+            Text {
+                text: AppState.calib-message;
+                color: Theme.text-secondary;
+                font-size: Theme.font-label;
+                wrap: word-wrap;
+            }
+            HorizontalLayout {
+                spacing: Theme.spacing-small;
+                if root.phase == 1: Button { text: "Run test"; primary: true; clicked => { AppState.calib-run(); } }
+                if root.phase == 2: Button { text: "Stop test"; clicked => { AppState.calib-stop(); } }
+                if root.phase == 3: Button { text: "Recognized"; primary: true; clicked => { AppState.calib-verdict(true); } }
+                if root.phase == 3: Button { text: "Not recognized"; clicked => { AppState.calib-verdict(false); } }
+                if root.phase == 3: Button { text: "Run again"; clicked => { AppState.calib-run(); } }
+                if root.phase == 4: Button {
+                    text: "Use " + AppState.calib-suggested-ms + " ms";
+                    primary: true;
+                    clicked => { AppState.calib-apply(); }
+                }
+                Rectangle { }
+                if root.phase != 2: Button { text: root.phase >= 4 ? "Start over" : "Cancel"; clicked => { AppState.calib-reset(); } }
+            }
+        }
+    }
+
+    if AppState.calib-history.length > 0: VerticalLayout {
+        spacing: 2px;
+        SectionTitle { text: "RESULTS"; }
+        for row in AppState.calib-history: HorizontalLayout {
+            spacing: 12px;
+            Text {
+                text: row.hold;
+                width: 64px;
+                color: Theme.text-secondary;
+                font-size: Theme.font-label;
+                horizontal-alignment: right;
+            }
+            Text {
+                text: row.verdict;
+                color: row.ok ? Theme.text-strong : Theme.text-muted;
+                font-size: Theme.font-label;
+            }
+        }
+    }
+}
+
+export component SettingsPage inherits Rectangle {
+    VerticalLayout {
+        padding: Theme.padding;
+        spacing: Theme.spacing;
+
+        HorizontalLayout {
+            spacing: 8px;
+            BackButton { clicked => { AppState.navigate(0); } }
+            TabBar {
+                tabs: ["General", "Hotkeys", "Input", "Profiles", "Calibrate"];
+                current: AppState.settings-tab;
+                selected(i) => { AppState.settings-tab = i; }
+            }
+            Rectangle { }
+        }
+        Rectangle {
+            height: 1px;
+            background: Theme.border;
+        }
+        ScrollPanel {
+            vertical-stretch: 1;
+            if AppState.settings-tab == 0: GeneralTab { }
+            if AppState.settings-tab == 1: HotkeysTab { }
+            if AppState.settings-tab == 2: InputTab { }
+            if AppState.settings-tab == 3: ProfilesTab { }
+            if AppState.settings-tab == 4: CalibrateTab { }
+        }
+    }
+}

@@ -1,0 +1,4 @@
+# Optional: lets the logged-in user use the uinput backend of ARPAuto Macro without root.
+# Install: sudo cp 60-arpauto-macro-uinput.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger /dev/uinput
+# (Alternatively add your user to a group that owns /dev/uinput.)
+KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"

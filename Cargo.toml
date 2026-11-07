@@ -1,0 +1,49 @@
+[package]
+name = "arpauto-macro"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.85"
+description = "Repeated timed mouse-button holds for Linux X11"
+license = "MIT"
+readme = "README.md"
+publish = false
+
+[lib]
+name = "arpauto_macro"
+path = "src/lib.rs"
+
+[[bin]]
+name = "arpauto-macro"
+path = "src/main.rs"
+
+[dependencies]
+# UI only. The femtovg (OpenGL) renderer is preferred; the software renderer is a fallback
+# for machines without working OpenGL.
+slint = { version = "1.18", default-features = false, features = [
+    "std",
+    "compat-1-2",
+    "backend-winit-x11",
+    "renderer-femtovg",
+    "renderer-software",
+] }
+# X11 protocol: XTest for synthetic input, XInput to detect the uinput device, core
+# protocol for grabs, focus, pointer queries and keymaps.
+x11rb = { version = "0.13", features = ["xtest", "xinput"] }
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter", "ansi"] }
+# prctl (timer slack), poll, flock, sigwait and the uinput ioctls.
+libc = "0.2"
+
+[build-dependencies]
+slint-build = "1.18"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+strip = true
+panic = "unwind"

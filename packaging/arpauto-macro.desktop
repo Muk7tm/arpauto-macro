@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=ARPAuto Macro
+GenericName=Mouse hold macro
+Comment=Repeated timed mouse-button holds for X11
+Exec=@BINDIR@/arpauto-macro
+Icon=arpauto-macro
+Terminal=false
+Categories=Utility;
+StartupWMClass=arpauto-macro

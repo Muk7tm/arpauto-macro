@@ -1,0 +1,43 @@
+// ARPAuto Macro visual constants.
+//
+// The product family shares this design specification (colors, metrics, typography,
+// motion), not this file: each application keeps its own copy of these values.
+
+export global Theme {
+    // Palette
+    out property <color> background: #09090A;
+    out property <color> panel: #141012;
+    out property <color> accent: #64232E;
+    out property <color> text-primary: #BD5965;
+    out property <color> text-secondary: #D07984;
+    out property <color> text-strong: #E099A1;
+    out property <color> border: #352027;
+    out property <color> hover: #7A2A36;
+    // Derived (palette colors with alpha only)
+    out property <color> text-muted: #BD5965a6;
+    out property <color> pressed: #571e28;
+    out property <color> field: #0d0b0c;
+    out property <color> selection: #64232Eb3;
+
+    // Metrics
+    out property <length> padding: 14px;
+    out property <length> spacing: 10px;
+    out property <length> spacing-small: 6px;
+    out property <length> control-height: 30px;
+    out property <length> button-height: 34px;
+    out property <length> radius: 6px;
+    out property <length> radius-small: 4px;
+    out property <length> border-width: 1px;
+    out property <length> label-width: 132px;
+
+    // Typography
+    out property <string> font-family: "Noto Sans";
+    out property <length> font-caption: 11px;
+    out property <length> font-label: 12px;
+    out property <length> font-body: 13px;
+    out property <int> weight-normal: 400;
+    out property <int> weight-medium: 500;
+
+    // Motion
+    out property <duration> hover-duration: 140ms;
+}
